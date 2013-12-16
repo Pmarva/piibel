@@ -1,0 +1,45 @@
+body {
+	font-family:tahoma;
+}
+
+#wraper {
+	margin-top:16px;
+	padding:0px 0px 0px 5px;
+	display:-moz-box; /* Firefox */
+	display:-webkit-box; /* Safari and Chrome */
+	display:-ms-flexbox; /* Internet Explorer 10 */
+	display:box;
+}
+
+#EST_97, #EST_68 {
+	-moz-box-flex:1.0; /* Firefox */
+	-webkit-box-flex:1.0; /* Safari and Chrome */
+	-ms-flex:1.0; /* Internet Explorer 10 */
+	box-flex:1.0;
+}
+
+.ptkNr {
+	font-weight:bold;
+	font-size:1em;
+}
+
+.salmPlkr {
+	font-weight:bold;
+	margin-top:1em;
+	margin-bottom:1em;
+}
+
+.rNim {
+
+}
+
+.ptk {
+	padding:5px;
+	margin-bottom:10px;
+}
+
+.salm {
+	margin-bottom:10px;
+	padding:2px;
+}
+
