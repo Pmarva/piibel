@@ -1,3 +1,4 @@
-piibel
+Piibel
 ======
-Test 123
+Eesti keelne piibel kahe tõlkega.
+Saab näidata projektorisse.
