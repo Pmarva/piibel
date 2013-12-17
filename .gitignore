@@ -1,0 +1,5 @@
+#### Ignore ###
+js/jQuery.fracs/*
+js/fancybox/fancybox/jquery.fancybox-1.3.4.js
+js/fancybox/fancybox/jquery.easing-1.3.pack.js
+js/fancybox/fancybox/jquery.mousewheel-3.0.4.pack.js

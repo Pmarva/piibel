@@ -136,6 +136,7 @@ label {
 
 #outline {
 	position: fixed;
+	top:50px;
 	right:0px;
 	border: solid 1px black;
 }
