@@ -4,18 +4,17 @@
 <meta charset="utf-8"/>
 <title>Piibel</title>
 <link rel="stylesheet" type="text/css" href="css/stiil.css">
-<link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
-<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.10.3.css">
+<link rel="stylesheet" href="js/fancybox/fancybox/jquery.fancybox-1.3.4.css" type="text/css" media="screen" />
+<script src="js/jquery-1.8.3.min.js"></script>
 <script src="js/jquery-ui-1.10.3.custom.min.js"></script>
 <script src="js/jquery-regex.js"></script>
-<script type="text/javascript" src="js/jscolor/jscolor.js"></script>
-<script type="text/javascript" src="js/fancybox/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
-<script type="text/javascript" src="js/fancybox/fancybox/jquery.easing-1.3.pack.js"></script>
-<script type="text/javascript" src="js/fancybox/fancybox/jquery.mousewheel-3.0.4.pack.js"></script>
-<script type="text/javascript" src="js/jQuery.fracs/jquery.fracs-0.12.0.min.js"></script>
-<script type="text/javascript" src="js/jQuery.fracs/jquery.outline-0.12.0.min.js"></script>
-<link rel="stylesheet" href="js/fancybox/fancybox/jquery.fancybox-1.3.4.css" type="text/css" media="screen" />
-
+<script src="js/jscolor/jscolor.js"></script>
+<script src="js/fancybox/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+<!--<script src="js/fancybox/fancybox/jquery.easing-1.3.pack.js"></script>-->
+<!--<script src="js/fancybox/fancybox/jquery.mousewheel-3.0.4.pack.js"></script>-->
+<script src="js/jQuery.fracs/jquery.fracs-0.12.0.min.js"></script>
+<script src="js/jQuery.fracs/jquery.outline-0.12.0.min.js"></script>
 <script>
 var sisend;
 var w=null;
@@ -51,7 +50,7 @@ function events() {
 		}); */
 		
 		$("#kast").fancybox({
-					type:"inline",
+
 					onStart:function() {
 							setColorJsColor();
 						if(!w) {
@@ -64,16 +63,15 @@ function events() {
 					},
 					onCleanup:function() {
 						if(UnSavedSettingBox) {
-							var a=confirm("Seadeid on muudetud kas tahad salvestada?");
+							var a=confirm("Seadeid on muudetud, kas väljud salvestamata?");
 							if(a==true) {
-								$("#kinnita").trigger("click");
-							} else {
 								if(w!=null) {
 									getColor();
 								}
-								
 								UnSavedSettingBox=false;
 								return true;
+							} else {
+								$("#kinnita").trigger("click");
 							}
 						}
 					},
@@ -616,7 +614,7 @@ function navigation(obj) {
 					<td>Raamatu nimi:</td>
 					<td><input id="rmtnimvarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.rNim',attr:'color',value:'#'+this.color})"/></td>
 				</tr>
-				<tr>
+				<tr class="TextAlCenter">
 					<td><button id="kinnita">Kinnita</button></td>
 					<td><button id="katkesta">Katkesta</button></td>
 				</tr>
@@ -675,6 +673,10 @@ function navigation(obj) {
 		 	console.log(e);
 		 }
 			
+		});
+
+		$("#katkesta").click(function(){
+			$.fancybox.close();
 		});
 		
 

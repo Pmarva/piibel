@@ -44,6 +44,14 @@ td {
 	width:80px;
 }
 
+#settings table td {
+	width:auto;
+	padding:2.5px;
+}
+
+.TextAlCenter {
+	text-align: center;
+}
 
 #otsi {
 	width:100%;
