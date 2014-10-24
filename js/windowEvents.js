@@ -1,4 +1,5 @@
 $(w.document).ready(function(){
+	w.opener.getColor('ProjektoriAken');
 
 	$(w.document).scroll(function() {
 	

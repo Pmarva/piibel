@@ -4,83 +4,131 @@
 <meta charset="utf-8"/>
 <title>Piibel</title>
 <link rel="stylesheet" type="text/css" href="css/stiil.css">
-<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.10.3.custom.css">
+<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.10.4.custom.css">
 <link rel="stylesheet" href="js/fancybox/fancybox/jquery.fancybox-1.3.4.css" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="css/CustomStiil.css">
 <script src="js/jquery-1.8.3.min.js"></script>
-<script src="js/jquery-ui-1.10.3.custom.min.js"></script>
+<script src="js/jquery-ui-1.10.4.custom.min.js"></script>
 <script src="js/jquery-regex.js"></script>
 <script src="js/jscolor/jscolor.js"></script>
 <script src="js/fancybox/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+<script src="js/lz-string-master/libs/lz-string-1.3.3-min.js"></script>
+
+
+
+
 <!--<script src="js/fancybox/fancybox/jquery.easing-1.3.pack.js"></script>-->
 <!--<script src="js/fancybox/fancybox/jquery.mousewheel-3.0.4.pack.js"></script>-->
 <script>
-var sisend;
-var w=null;
-var scrollBufferPx=6;
-var UnSavedSettingBox=false; //muutuja millega kontrollitakse kas seadeid on muudetud. 
+
+var sisend = null;
+var w = null;
+var scrollBufferPx = 6;
+var ProjektoriAkenUnSavedSettingBox = false; //muutuja millega kontrollitakse kas seadeid on muudetud.
+var ArvutiAkenUnSavedSettingBox = false;
 var raamatud = ["EST_97","EST_68"];
+var typingTimer;
+var doneTypingItnerval=500;
 
 
-setInterval(function() {if(w!=null)if(w.closed)btToAken()},2000);
+window.setInterval(function() {if(w!=null)if(w.closed)btToAken()},2000);
 	
 $(document).ready(events);
 
 
-function btToAken() {
-				$("button[value='aken']").text("aken");
-				$("button[value='pgDown']").hide();
-				$("button[value='pgUp']").hide();
-				$("#settings>table").hide();
-				$("#settings>p").show();
-				w=null;
-		}
-
 function events() {
-		
-			$.get('piibel.xml', null, function (data, textStatus) {
-				sisend=data;
+	
+		if(!localStorage.piibel) {
+			$.get('piibel.xml', null, function (data, textStatus, jqXHR) {
+				
+				var string = jqXHR.responseText; //võtakse xml sisu tekstina "string"
+				localStorage.piibel = LZString.compressToUTF16(string);
+				sisend = $.parseXML(string); // tehakse XML dokument, objekt
+				$("#loading").hide();
 				$('#otsi').show();
 				setDefColors();
+				getColor("ArvutiAken");
+				if(localStorage.salm) {
+					ConvertStorage();
+				}
 			});
+
+		} else {
+			var string = LZString.decompressFromUTF16(localStorage.piibel);
+			sisend = $.parseXML(string);
+			$("#loading").hide();
+			$('#otsi').show();
+			setDefColors();
+			getColor("ArvutiAken");
+			if(localStorage.salm) {
+				ConvertStorage();
+			}
+		}	
 			/*
 		$("#nav ul li").live("click", function(){
 				$(this).text();
 		}); */
+
+		InitTooltips();
+		window.onpopstate = locationHashChanged;
 		
 		$("#kast").fancybox({
-
 					onStart:function() {
 							setColorJsColor();
 						if(!w) {
-							$("#settings>table").hide();
-							$("#settings>p").show();
+							$("#ProjektoriAken").hide();
+							$("#tab-2 p").show();
 						} else {
-							$("#settings>p").hide();
-							$("#settings>table").show();
+							$("#tab-2 p").hide();
+							$("#ProjektoriAken").show();
 						}
 					},
 					onCleanup:function() {
-						if(UnSavedSettingBox) {
+						if(ArvutiAkenUnSavedSettingBox || ProjektoriAkenUnSavedSettingBox) {
 							var a=confirm("Seadeid on muudetud, kas väljud salvestamata?");
-							if(a==true) {
-								if(w!=null) {
-									getColor();
+								if(a==true) {
+										if(ArvutiAkenUnSavedSettingBox) {
+											getColor("ArvutiAken");
+											ArvutiAkenUnSavedSettingBox = false;
+										}
+
+										if(ProjektoriAkenUnSavedSettingBox) {
+											if(w!=null) {
+											getColor("ProjektoriAken");
+											ProjektoriAkenUnSavedSettingBox = false;
+										}
+
 								}
-								UnSavedSettingBox=false;
 								return true;
 							} else {
-								$("#kinnita").trigger("click");
+								//$("#kinnita").trigger("click");
+								return false;
 							}
 						}
 					},
-					onClosed:function() {		
-						if($("#settings>table").css('display')!='none') {
-							getColor();
+					onClosed:function() {	
+						/*
+						if($("#settings table").css('display')!='none') {
+							//getColor();
 						}
-					},	
+						*/
+					},
 		});
 
-		$("#otsi").autocomplete({ source: [{label:"1Ms-Esimene Moosese raamat", value:"1Ms"},{label:"2Ms-Teine Moosese raamat", value:"2Ms"},{label:"3Ms-Kolmas Moosese raamat", value:"3Ms"},{label:"4Ms-Neljas Moosese raamat", value:"4Ms"},{label:"5Ms-Viies Moosese raamat", value:"5Ms"},{label:"Jos-Joosua", value:"Jos"},{label:"Km-Kohtumõistjate raamat", value:"Km"},{label:"Rt-Rutt", value:"Rt"},{label:"1Sm-Esimene Saamueli raamat", value:"1Sm"},{label:"2Sm-Teine Saamueli raamat", value:"2Sm"},{label:"1Kn-Esimene Kuningate raamat", value:"1Kn"},{label:"2Kn-Teine Kuningate raamat", value:"2Kn"},{label:"1Aj-Esimene ajaraamat", value:"1Aj"},{label:"2Aj-Teine Ajaraamat", value:"2Aj"},{label:"Esr-Esra", value:"Esr"},{label:"Ne-Nehemja", value:"Ne"},{label:"Est-Ester", value:"Est"},{label:"Ii-Iiob", value:"Ii"},{label:"Ps-Psalmid (Laulud)", value:"Ps"},{label:"Õp-Õpetussõnad", value:"õp"},{label:"Kg-Koguja", value:"Kg"},{label:"Ül-ülemlaul", value:"Ül"},{label:"Js-Jesaja", value:"Js"},{label:"Jr-Jeremija", value:"Jr"},{label:"Nl-Nutulaulud", value:"Nl"},{label:"Hs-Hesekiel", value:"Hs"},{label:"Tn-Taaniel", value:"Tn"},{label:"Ho-Hoosea", value:"Ho"},{label:"Jl-Joel", value:"Jl"},{label:"Am-Aamos", value:"Am"},{label:"Ob-Obadja", value:"Ob"},{label:"Jn-Joona", value:"Jn"},{label:"Mi-Miika", value:"Mi"},{label:"Na-Nahum", value:"Na"},{label:"Ha-Habakuk", value:"Ha"},{label:"Sf-Sefanja", value:"Sf"},{label:"Hg-Haggai", value:"Hg"},{label:"Sk-Sakarja", value:"Sk"},{label:"Ml-Malaki", value:"Ml"},{label:"Mt-Matteuse evangeelium", value:"Mt"},{label:"Mk-Markuse evangeelium", value:"Mk"},{label:"Lk-Luuka evangeelium", value:"Lk"},{label:"Jh-Johannese evangeelium", value:"Jh"},{label:"Ap-Apostlite teod", value:"Ap"},{label:"Rm-Pauluse kiri roomlastele", value:"Rm"},{label:"1Kr-Pauluse esimene kiri korintlastele", value:"1Kr"},{label:"2Kr-Pauluse teine kiri korintlastele", value:"2Kr"},{label:"Gl-Pauluse kiri galaatlastele", value:"Gl"},{label:"Ef-Pauluse kiri efeslastele", value:"Ef"},{label:"Fl-Pauluse kiri filiplastele", value:"Fl"},{label:"Kl-Pauluse kiri koloslastele", value:"Kl"},{label:"1Ts-Pauluse esimene kiri tessalooniklastele", value:"1Ts"},{label:"2Ts-Pauluse teine kiri tessalooniklastele", value:"2Ts"},{label:"1Tm-Pauluse esimene kiri Timoteosele", value:"1Tm"},{label:"2Tm-Pauluse teine kiri Timoteosele", value:"2Tm"},{label:"Tt-Pauluse kiri Tiitusele", value:"Tt"},{label:"Fm-Pauluse kiri Fileemonile", value:"Fm"},{label:"Hb-Kiri heebrealastele", value:"Hb"},{label:"Jk-Jaakobuse kiri", value:"Jk"},{label:"1Pt-Peetruse esimene kiri", value:"1Pt"},{label:"2Pt-Peetruse teine kiri", value:"2Pt"},{label:"1Jh-Johannese esimene kiri", value:"1Jh"},{label:"2Jh-Johannese teine kiri", value:"2Jh"},{label:"3Jh-Johannese kolmas kiri", value:"3Jh"},{label:"Jd-Juuda kiri", value:"Jd"},{label:"Ilm-Johannese ilmutus", value:"Ilm"}] });
+		$("#settings").tabs({
+			load:function(event,ui){
+			}
+		});
+
+		$("#otsi").autocomplete({ source: [{label:"1Ms-Esimene Moosese raamat", value:"1Ms"},{label:"2Ms-Teine Moosese raamat", value:"2Ms"},{label:"3Ms-Kolmas Moosese raamat", value:"3Ms"},{label:"4Ms-Neljas Moosese raamat", value:"4Ms"},{label:"5Ms-Viies Moosese raamat", value:"5Ms"},{label:"Jos-Joosua", value:"Jos"},{label:"Km-Kohtumõistjate raamat", value:"Km"},{label:"Rt-Rutt", value:"Rt"},{label:"1Sm-Esimene Saamueli raamat", value:"1Sm"},{label:"2Sm-Teine Saamueli raamat", value:"2Sm"},{label:"1Kn-Esimene Kuningate raamat", value:"1Kn"},{label:"2Kn-Teine Kuningate raamat", value:"2Kn"},{label:"1Aj-Esimene ajaraamat", value:"1Aj"},{label:"2Aj-Teine Ajaraamat", value:"2Aj"},{label:"Esr-Esra", value:"Esr"},{label:"Ne-Nehemja", value:"Ne"},{label:"Est-Ester", value:"Est"},{label:"Ii-Iiob", value:"Ii"},{label:"Ps-Psalmid (Laulud)", value:"Ps"},{label:"Õp-Õpetussõnad", value:"õp"},{label:"Kg-Koguja", value:"Kg"},{label:"Ül-ülemlaul", value:"Ül"},{label:"Js-Jesaja", value:"Js"},{label:"Jr-Jeremija", value:"Jr"},{label:"Nl-Nutulaulud", value:"Nl"},{label:"Hs-Hesekiel", value:"Hs"},{label:"Tn-Taaniel", value:"Tn"},{label:"Ho-Hoosea", value:"Ho"},{label:"Jl-Joel", value:"Jl"},{label:"Am-Aamos", value:"Am"},{label:"Ob-Obadja", value:"Ob"},{label:"Jn-Joona", value:"Jn"},{label:"Mi-Miika", value:"Mi"},{label:"Na-Nahum", value:"Na"},{label:"Ha-Habakuk", value:"Ha"},{label:"Sf-Sefanja", value:"Sf"},{label:"Hg-Haggai", value:"Hg"},{label:"Sk-Sakarja", value:"Sk"},{label:"Ml-Malaki", value:"Ml"},{label:"Mt-Matteuse evangeelium", value:"Mt"},{label:"Mk-Markuse evangeelium", value:"Mk"},{label:"Lk-Luuka evangeelium", value:"Lk"},{label:"Jh-Johannese evangeelium", value:"Jh"},{label:"Ap-Apostlite teod", value:"Ap"},{label:"Rm-Pauluse kiri roomlastele", value:"Rm"},{label:"1Kr-Pauluse esimene kiri korintlastele", value:"1Kr"},{label:"2Kr-Pauluse teine kiri korintlastele", value:"2Kr"},{label:"Gl-Pauluse kiri galaatlastele", value:"Gl"},{label:"Ef-Pauluse kiri efeslastele", value:"Ef"},{label:"Fl-Pauluse kiri filiplastele", value:"Fl"},{label:"Kl-Pauluse kiri koloslastele", value:"Kl"},{label:"1Ts-Pauluse esimene kiri tessalooniklastele", value:"1Ts"},{label:"2Ts-Pauluse teine kiri tessalooniklastele", value:"2Ts"},{label:"1Tm-Pauluse esimene kiri Timoteosele", value:"1Tm"},{label:"2Tm-Pauluse teine kiri Timoteosele", value:"2Tm"},{label:"Tt-Pauluse kiri Tiitusele", value:"Tt"},{label:"Fm-Pauluse kiri Fileemonile", value:"Fm"},{label:"Hb-Kiri heebrealastele", value:"Hb"},{label:"Jk-Jaakobuse kiri", value:"Jk"},{label:"1Pt-Peetruse esimene kiri", value:"1Pt"},{label:"2Pt-Peetruse teine kiri", value:"2Pt"},{label:"1Jh-Johannese esimene kiri", value:"1Jh"},{label:"2Jh-Johannese teine kiri", value:"2Jh"},{label:"3Jh-Johannese kolmas kiri", value:"3Jh"},{label:"Jd-Juuda kiri", value:"Jd"},{label:"Ilm-Johannese ilmutus", value:"Ilm"}],
+			select: function( event, ui ) {
+				$("#otsi").val(ui.item.value);
+				v2ljasta();
+
+			}
+			 });
+
+		
 		
 	
 		
@@ -93,7 +141,7 @@ function events() {
 				
 				if(event.charCode==113) { //Q
 					pageUp();
-				} //115 , 120
+				}
 				
 				if(event.charCode==115) { //S
 					scrollUp();
@@ -103,6 +151,28 @@ function events() {
 					scrollDown();
 				}	
 			}
+		});
+		
+		$("#otsi").keydown(function(event){
+
+			var tekst = $("#otsi").val().trim().match("t:") === null ? false : true;
+
+			if(event.keyCode==190 && (event.shiftKey==false && event.ctrlKey==false && event.altKey==false) && !tekst) {
+				event.preventDefault();
+				var value = $("#otsi").val() + ":";
+				$("#otsi").val(value);
+			}
+		});
+
+
+
+		/*$('#otsi').keydown(function(){
+    		clearTimeout(typingTimer);
+		});*/
+
+		$('#otsi').on("input", function(){
+    		clearTimeout(typingTimer);
+    		typingTimer = setTimeout(v2ljasta, doneTypingItnerval);
 		});
 		
 		
@@ -117,18 +187,18 @@ function events() {
 		$("button[value='aken']").click(function() {
 			if(w==null) {
 				w = window.open('','piibel2','fullscreen=yes,scrollbars=no');
-				$("button[value='pgDown']").show();
+				//$("button[value='pgDown']").show();
 		
 				$(this).text("uuenda");
 				window_content();
 			} else {
-				window_content();
+				updateWindowContent();
 			}
 		});
 		
-		$("input[type=checkbox]").click(function(){
+		$("input[type=checkbox]").click(function() {
 			var x=$(this).val();
-			
+
 			if(!$('#CB_EST_97').is(':checked') && !$('#CB_EST_68').is(':checked')) {
 				if(x=="EST_97") {
 					$('#CB_EST_68').prop('checked', true);
@@ -140,18 +210,54 @@ function events() {
 			v2ljasta();
 		});
 
-		$("#otsi").keyup(v2ljasta);
-		$("#otsi").change(v2ljasta);
+
+
+		$(document).on("click",".salmiAsukoht", function(event){
+			event.preventDefault();
+			var value = $(this).text().trim();
+			$("#otsi").val(value);
+			v2ljasta();
+		});
 
 }
 
+function locationHashChanged() {
+   var x = window.location.hash.substring(1);
+
+   if (x.length>0) {
+   		var split = x.split("&");
+ 
+   		$("#otsi").val(split[0]);
+	   	var y = sessionStorage[x];
+	   	$("#wraper").html(y);
+
+	   	var val = (split[1].substr(7) === "true");
+	   	$('#CB_EST_68').prop('checked', val);
+	   	val = (split[2].substr(7) === "true");
+	   	$('#CB_EST_97').prop('checked', val);
+ 		   	
+	} else {
+		$("#otsi").val("");
+		v2ljasta();
+		
+	}
+}
 
 
+function btToAken() {
+				$("button[value='aken']").text("aken");
+				$("button[value='pgDown']").hide();
+				$("button[value='pgUp']").hide();
+				$("#ProjektoriAken").hide();
+				$("#tab-2 p").show();
+				w=null;
+}
 
 
 function v2ljasta() {
 		
 		$("#wraper").empty();
+		$("#loading").show();
 		$("button[value='uusSalm']").hide();
 		var value = new Array();
 
@@ -160,7 +266,13 @@ function v2ljasta() {
 		});
 		
 		var search=$("#otsi").val();
-		
+
+		/*
+		if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}.[0-9]{1,3}-[0-9]{1,3}$/i)!=null) {
+			search=search.replace(".",":");
+			$("#otsi").val(search);
+		}*/
+	
 		//raamatu nimi Nt: 1ms, 2ms
 		if(search.match(/^[1-5]?[a-zöäüõ]{2,3}$/i)!=null) {
 			var rNim=null;
@@ -168,13 +280,13 @@ function v2ljasta() {
 			for(x in value) {
 				var vers=value[x];
 				out+="<div id="+vers+">";
+					out+="<div class='versName'>"+vers+"</div>";
 				$(sisend).find("piibel "+vers+" book:regex(abbrev,^"+search+"$)").children().each(function () {
 					if(rNim==null) {
 						rNim=$(this).parents("book").attr("title");
 						out+="<div class='rNim'>"+rNim+"</div>";
 					}
 						
-						out+="<div class='ptk'>";
 							var ptkNr=$(this).attr("id");
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 						$(this).children().each(function() {
@@ -186,7 +298,6 @@ function v2ljasta() {
 							out+="<div class='salm'>";
 							out+="<span class='salmiNr'>"+salmNr+". </span>"+$(this).text()+"</div>";
 						});
-						out+="</div>";
 						//navigation(search,vers);
 						//navigation({raamat:search,vers:vers});
 						
@@ -195,14 +306,13 @@ function v2ljasta() {
 				rNim=null;
 			}
 				$('#wraper').html(out);
-				//$('#wraper').fracs('check');
+				//history.pushState(search," ","#"+search);
+			
 				
-			
-			
 		//raamatu peatükk Nt:1ms 2, 1ms 4, 1jh 4	
 		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}$/i)!=null) {
 			var out='';
-			var search=search.split(" ");
+			search=search.split(" ");
 			var raamat=search[0];
 			var ptk=search[1];
 			var rNim=null;
@@ -217,7 +327,6 @@ function v2ljasta() {
 						rNim=$(this).parents("book").attr("title");
 						out+="<div class='rNim'>"+rNim+"</div>";
 					}
-						out+="<div class='ptk'>";
 						var ptkNr=$(this).attr("id");
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 						$(this).children().each(function() {
@@ -228,18 +337,19 @@ function v2ljasta() {
 							var salmNr=$(this).attr("id");
 							out+="<div class='salm'><span class='salmiNr'>"+salmNr+". </span>"+$(this).text()+"</div>";
 						});
-					out+="</div>";
 				}); //Find loop
 
 				out+="</div>";
 				rNim=null;
 			}
+				
 				$("#wraper").html(out);
 			
 		//üksiku salm NT: 1ms 1:2
 		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}$/i)!=null) {
 			
-			var search=search.split(" ");
+			$("button[value='uusSalm']").show();
+			search=search.split(" ");
 			var ptk_salm=search[1].split(":");
 			var raamat=search[0];
 			var ptk=ptk_salm[0];
@@ -256,7 +366,6 @@ function v2ljasta() {
 						rNim=$(this).parents("book").attr("title");
 						out+="<div class='rNim'>"+rNim+"</div>";	
 					}
-					 out+="<div class='ptk'>";
 						var ptkNr=$(this).parent().attr("id");
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 						 if($(this).attr("heading")) {
@@ -264,19 +373,19 @@ function v2ljasta() {
 							 }
 						var salmNr=$(this).attr("id");
 							out+="<div class='salm'><span class='salmiNr'>"+salmNr+". </span>"+$(this).text()+"</div>";
-					out+="</div>";
 					
 					//navigation(raamat,vers);
 				});
 				out+="</div>";
 				rNim=null;
 			}	
+					
 					$("#wraper").html(out);
 			
 		//mitu salmi mis on komaga eraldatud. Nt: 1ms 3:2,1,5,10
 		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}(,[0-9]{1,3})+$/i)!=null) {
 			var out='';
-			var search=search.split(" ");
+			search=search.split(" ");
 			var ptk_salm=search[1].split(":");
 			var raamat=search[0];
 			var ptk=ptk_salm[0];
@@ -293,7 +402,6 @@ function v2ljasta() {
 						out+="<div class='rNim'>"+rNim+"</div>";
 					}
 
-					out+="<div class='ptk'>";
 						var ptkNr=ptk;
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 				for(var i=0; i<salm.length;i++) {
@@ -306,10 +414,8 @@ function v2ljasta() {
 					});
 				}
 				 out+="</div>";
-				 out+="</div>";
 				 rNim=null;
 			}
-					
 					$("#wraper").html(out);
 				//navigation(raamat,vers);
 		//salmid x kuni y Nt: 1ms 3:2-10		
@@ -317,7 +423,7 @@ function v2ljasta() {
 
 			$("button[value='uusSalm']").show();
 			var out='';
-			var search=search.split(" ");
+			search=search.split(" ");
 			var ptk_salm=search[1].split(":");
 			var raamat=search[0];
 			var ptk=ptk_salm[0];
@@ -330,7 +436,6 @@ function v2ljasta() {
 				var sisu=$(sisend).find("piibel "+vers+" book:regex(abbrev,^"+raamat+"$)").find("chapter[id="+ptk+"]");
 				var rNim=$(sisu).parents("book").attr("title");
 					out+="<div class='rNim'>"+rNim+"</div>";
-				out+="<div class='ptk'>";
 				
 				var ptkNr=ptk;
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
@@ -347,10 +452,35 @@ function v2ljasta() {
 					});
 				}
 				 out+="</div>";
-				 out+="</div>";
 			}
 					$("#wraper").html(out);
 				
+		} else if(search.match(/^t:.+$/i)!=null) {
+	
+					var out= '';
+					var rNim = null;
+					var ptkNr;
+					var salmNr;
+					var count_r = new Array();
+					var count=0;
+					search=search.match(/[^t:].+$/).toString().trim();
+
+					for(x in value) {
+						count = 0;
+						var vers = value[x];
+						out+="<div id="+vers+">";
+						var sisu   = $(sisend).find("piibel "+vers).find("verse:contains('"+search+"')").each(function(){
+
+							rNim   = $(this).parents("book").attr("abbrev");	
+							ptkNr  = $(this).parents("chapter").attr("id");
+							salmNr = $(this).attr("id");
+							out+="<div class='salm'><a href='#"+rNim+" "+ptkNr+":"+salmNr+"' class='salmiAsukoht'>"+rNim+" "+ptkNr+":"+salmNr+"</a> "+$(this).text()+"</div>";	 
+							count++;
+							count_r.push(count);
+						});
+						out+="</div>";
+					}
+					$("#wraper").html(out);
 		}
 		
 		if(w!=null) {
@@ -360,7 +490,21 @@ function v2ljasta() {
 			}
 		}
 
+		$("#loading").hide();
+		getColor("ArvutiAken");
 
+		//console.log($("#wraper").html().length);
+
+		var x = window.location.hash.substring(1);
+		var y = $("#otsi").val();
+		var w = $(".salm").length;
+		
+		
+		if(x!=y && w>0) {
+			y += "&EST_68="+$('#CB_EST_68').is(':checked')+"&EST_97="+$('#CB_EST_97').is(':checked');
+			sessionStorage[y] = $("#wraper").html();
+			location.hash = y;
+		}
 }
 
 /**
@@ -370,7 +514,7 @@ function window_content() {
 	
 	if(!w.closed) {
 			var sisu = $("#wraper").clone().html();
-			var html="<!Doctype html><html><head><link rel='stylesheet' type='text/css' href='css/stiil.css'><link rel='stylesheet' type='text/css' href='css/stiilAken.css'></head><body onunload='window.opener.btToAken()' onload='window.opener.getColor()'><div id='wraper'>"+sisu+"</div></body></html>";
+			var html="<!Doctype html><html><head><link rel='stylesheet' type='text/css' href='css/stiil.css'><link rel='stylesheet' type='text/css' href='css/stiilAken.css'></head><body onunload='window.opener.btToAken()'><div id='wraper'>"+sisu+"</div></body></html>";
 			
 			//$(w.document).find("#wraper").html(sisu);
 			//var script1   = document.createElement("script");
@@ -397,6 +541,16 @@ function window_content() {
 		}
 }
 
+function updateWindowContent(){
+	try{
+		var sisu = $("#wraper").clone().html();
+		$(w.document).find("body").find("#wraper").html(sisu);
+		getColor('ProjektoriAken');
+	}catch(e){
+		alert(e);
+	}
+}
+
 
 /**
 *
@@ -408,6 +562,7 @@ var scrollPosition = $(w.document).scrollTop(), //akna ülemine äär tipust
     nextPost = 0,
     currentPosition = 0;
 	var height=scrollPosition+$(w).height();  // akna alumine äär tipust
+
 $(w.document).find(".salm").each(function() {
     currentPosition = $(this).offset().top; //salmi ülemise ääre kaugus tipust
 	
@@ -416,10 +571,9 @@ $(w.document).find(".salm").each(function() {
         nextPost = currentPosition;
         return false; // break the loop
     } 
-	
-	
-	
+   
 });
+
 //$(w.document).scrollTop(nextPost); // Scrolls the page to the post
 $(w.document).find("html").animate({scrollTop:nextPost}, 2000); 
 
@@ -451,10 +605,6 @@ $(w.document).find("html").animate({scrollTop:nextPost}, 2000);
 }
 
 
-/*
-* TODO : katki ei tööta praegu jama on terve raamatu näitamisel Nt: 1ms ei keri üle peatükide. Kuna Ptk number on esimene asi ja .prev ei võta eelmist salmi kuna ta on eelmise ptk sees.
-*
-*/
 function scrollUp()  {
 	
 	var scrollPosition = $(w.document).scrollTop(),
@@ -469,7 +619,7 @@ function scrollUp()  {
 		if (currentPosition > scrollPosition) {
 		
 				salm = $(this).prev();
-				if($(salm).attr('class')!="salm") { //viga hakkab siit TODO :: katki, tuleb teha väljaminek ptkist(vanemast) ja sisseminek eelmisesse peatükki ja sealt viimane salm valida.
+				if($(salm).attr('class')!="salm") { 
 					do{
 						salm = $(salm).prev();
 						if(typeof salm ==="undefined") return false; //väljub functionist. break loob each
@@ -530,6 +680,16 @@ function lisaSalm() {
 		$("#otsi").val(search);
 		v2ljasta();
 	}
+
+	if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}$/i)!=null) {
+		var a=search.split(":");
+		var number=parseInt(a[1])+1;
+		//number=String(number);
+		search=search+'-'+number;
+		$("#otsi").val(search);
+		v2ljasta();
+	}
+
 }
 
 function navigation(obj) {
@@ -554,16 +714,21 @@ function navigation(obj) {
 	var raamaat = null;
 }
 
+function InitTooltips() {
+	$("#otsi").tooltip({ content: "Awesome title!" });
+}
+
 
 
 </script>
 </head>
 <body>
+<div id="loading"><div id="img_container"></div><img src="ajax-loader.gif" alt="loading"/></div>
 <div id="HdPr">
 	<div id="header">
 		<table>
 			<tr>
-				<td colspan="2"><input id="otsi" type="text" name="otsi" title="Otsingu kast Nt: '1ms, 1ms 2, 1ms 2:1, 1ms 2:1-10'"/></td>
+				<td colspan="2"><input id="otsi" type="text" name="otsi"/></td>
 				<td><button type="button" value="aken" accesskey="h">Aken</button></td>
 				<td><label for="EST_97">EST_97:</label><input type="checkbox" name="piibel" id="CB_EST_97" value="EST_97" checked="checked"/></td>
 			</tr>
@@ -583,92 +748,154 @@ function navigation(obj) {
 	</div>
 </div>
 <div id="wraper">
-		
+
 </div>
 <div style="display:none">
 	<div id="settings">
-			<table>
-				<tr>
-					<td>Tausta värv:</td>
-					<td><input id="taust" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'body',attr:'background-color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr>
-					<td>Salmi teksti värv:</td>
-					<td><input id="textiVarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.salm',attr:'color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr>
-					<td>Salmi nr:</td>
-					<td><input id="salminrvarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.salmiNr',attr:'color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr>
-					<td>Salmi pealkiri:</td>
-					<td><input id="salmipealkirjavarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.salmPlkr',attr:'color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr>
-					<td>Peatüki nr:</td>
-					<td><input id="ptknrvarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.ptkNr',attr:'color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr>
-					<td>Raamatu nimi:</td>
-					<td><input id="rmtnimvarv" class="color" onchange="UnSavedSettingBox=true, chCl({elm:'.rNim',attr:'color',value:'#'+this.color})"/></td>
-				</tr>
-				<tr class="TextAlCenter">
-					<td><button id="kinnita">Kinnita</button></td>
-					<td><button id="katkesta">Katkesta</button></td>
-				</tr>
-			</table>
-			<p>Peate avama akna, et muuta seadistusi.</p>
+			<ul>
+				<li><a href="#tab-1">Arvuti akna seaded</a></li>
+				<li><a href="#tab-2">Projektori akna seaded</a></li>
+			</ul>
+			<div id="tab-1">
+				<table id="ArvutiAken">
+					<tr>
+						<td>Tausta värv:</td>
+						<td><input id="ArvutiAkenTaustaVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'body',attr:'background-color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi teksti värv:</td>
+						<td><input id="ArvutiAkenTextiVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'.salm',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi nr:</td>
+						<td><input id="ArvutiAkenSalmiNrVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'.salmiNr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi pealkiri:</td>
+						<td><input id="ArvutiAkenSalmiPealkirjaVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'.salmPlkr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Peatüki nr:</td>
+						<td><input id="ArvutiAkenPtkNrVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'.ptkNr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Raamatu nimi:</td>
+						<td><input id="ArvutiAkenRmtNimVarv" class="color" onchange="ArvutiAkenUnSavedSettingBox=true, chClArvutiAken({elm:'.rNim',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr class="TextAlCenter">
+						<td><button id="ArvutiAkenKinnita">Kinnita</button></td>
+						<td><button id="katkesta">Katkesta</button></td>
+					</tr>
+				</table>
+			</div>
+			<div id="tab-2">
+				<table id="ProjektoriAken">
+					<tr>
+						<td>Tausta värv:</td>
+						<td><input id="ProjektoriAkenTaustaVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true, chClProjektoriAken({elm:'body',attr:'background-color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi teksti värv:</td>
+						<td><input id="ProjektoriAkenTextiVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true, chClProjektoriAken({elm:'.salm',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi nr:</td>
+						<td><input id="ProjektoriAkenSalmiNrVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true, chClProjektoriAken({elm:'.salmiNr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Salmi pealkiri:</td>
+						<td><input id="ProjektoriAkenSalmiPealkirjaVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true,chClProjektoriAken({elm:'.salmPlkr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Peatüki nr:</td>
+						<td><input id="ProjektoriAkenPtkNrVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true, chClProjektoriAken({elm:'.ptkNr',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr>
+						<td>Raamatu nimi:</td>
+						<td><input id="ProjektoriAkenRmtNimVarv" class="color" onchange="ProjektoriAkenUnSavedSettingBox=true, chClProjektoriAken({elm:'.rNim',attr:'color',value:'#'+this.color})"/></td>
+					</tr>
+					<tr class="TextAlCenter">
+						<td><button id="ProjektoriAkenKinnita">Kinnita</button></td>
+						<td><button id="katkesta">Katkesta</button></td>
+					</tr>
+				</table>
+				<p>Peate avama akna, et muuta seadistusi.</p>
+		</div>
+	</div>
+</div>			
 		<script>
 		
 		
-		function chCl(color) {
+		function chClProjektoriAken(color) {
+
 			try {
 				$(w.document).find(color.elm).css(color.attr,color.value);
 			} catch(err) {
 				console.log(err);
 			}
-				
-			
 		}
+
+		function chClArvutiAken(color) {
+			$(document).find(color.elm).css(color.attr,color.value);
+		}
+
 		 /*
 			Värvide salvestamine localstoragesse.
-			Värv võetakse settingboxi aknast mitte tesest aknast.
+			Värv võetakse settingboxi aknast mitte projektori aknast.
 		 */
-		$("#kinnita").click(function(){
-		/*
-			var v2rv = $(w.document).find("body").css("background-color");
-			localStorage.body=v2rv;
-			v2rv=$(w.document).find(".salm").css("color");
-			localStorage.salm=v2rv;
-			v2rv=$(w.document).find("body").find(".salmiNr").css("color");
-			localStorage.salmNr=v2rv;
-			v2rv=$(w.document).find(".salmPlkr").css("color");
-			localStorage.salmPlkr=v2rv;
-			v2rv=$(w.document).find(".ptkNr").css("color");
-			localStorage.ptkNr=v2rv;
-			v2rv=$(w.document).find(".rNim").css("color");
-			localStorage.rNim=v2rv;
-		*/	
+		$("#ArvutiAkenKinnita").click(function(){
+		
 			try {
-				var v2rv = '#'+$('#taust')[0].color.toString();
-				localStorage.body=v2rv;
-				v2rv='#'+$('#textiVarv')[0].color.toString();
-				localStorage.salm=v2rv;
-				v2rv='#'+$('#salminrvarv')[0].color.toString();
-				localStorage.salmNr=v2rv;
-				v2rv='#'+$('#salmipealkirjavarv')[0].color.toString();
-				localStorage.salmPlkr=v2rv;
-				v2rv='#'+$('#ptknrvarv')[0].color.toString();
-				localStorage.ptkNr=v2rv;
-				v2rv='#'+$('#rmtnimvarv')[0].color.toString();
-				localStorage.rNim=v2rv;
+				var stiil = JSON.parse(localStorage.stiil);
+				var varv = '#'+$('#ArvutiAkenTaustaVarv')[0].color.toString();
+				stiil.ArvutiAken.body.v2rv=varv;
+				varv='#'+$('#ArvutiAkenTextiVarv')[0].color.toString();
+				stiil.ArvutiAken.salm.v2rv=varv;
+				varv='#'+$('#ArvutiAkenSalmiNrVarv')[0].color.toString();
+				stiil.ArvutiAken.salmiNr.v2rv=varv;
+				varv='#'+$('#ArvutiAkenSalmiPealkirjaVarv')[0].color.toString();
+				stiil.ArvutiAken.salmPlkr.v2rv=varv;
+				varv='#'+$('#ArvutiAkenPtkNrVarv')[0].color.toString();
+				stiil.ArvutiAken.ptkNr.v2rv=varv;
+				varv='#'+$('#ArvutiAkenRmtNimVarv')[0].color.toString();
+				stiil.ArvutiAken.rNim.v2rv=varv;
 
-			//console.log($('#rmtnimvarv')[0].color.toString());
-				UnSavedSettingBox=false;
+				localStorage.stiil = JSON.stringify(stiil);
+
+				ArvutiAkenUnSavedSettingBox=false;
+
 			$.fancybox.close();
 
 		 } catch(e) {
-		 	console.log(e);
+		 	alert("Katki "+e);
+		 }
+			
+		});
+
+		$("#ProjektoriAkenKinnita").click(function(){
+		
+			try {
+				var stiil = JSON.parse(localStorage.stiil);
+				var varv = '#'+$('#ProjektoriAkenTaustaVarv')[0].color.toString();
+				stiil.ProjektoriAken.body.v2rv=varv;
+				varv='#'+$('#ProjektoriAkenTextiVarv')[0].color.toString();
+				stiil.ProjektoriAken.salm.v2rv=varv;
+				varv='#'+$('#ProjektoriAkenSalmiNrVarv')[0].color.toString();
+				stiil.ProjektoriAken.salmiNr.v2rv=varv;
+				varv='#'+$('#ProjektoriAkenSalmiPealkirjaVarv')[0].color.toString();
+				stiil.ProjektoriAken.salmPlkr.v2rv=varv;
+				varv='#'+$('#ProjektoriAkenPtkNrVarv')[0].color.toString();
+				stiil.ProjektoriAken.ptkNr.v2rv=varv;
+				varv='#'+$('#ProjektoriAkenRmtNimVarv')[0].color.toString();
+				stiil.ProjektoriAken.rNim.v2rv=varv;
+
+				localStorage.stiil = JSON.stringify(stiil);
+
+				ProjektoriAkenUnSavedSettingBox=false;
+			$.fancybox.close();
+
+		 } catch(e) {
+		 	alert("Projekri värvide salvestamine katki "+e);
 		 }
 			
 		});
@@ -678,22 +905,27 @@ function navigation(obj) {
 		});
 		
 
-function getColor() {
+function getColor(aken) {
+
+	var dokument = aken == "ProjektoriAken" ? w.document : document;
+	var json = aken == "ProjektoriAken" ? "ProjektoriAken" : "ArvutiAken";
 	try {
-		var v2rv = localStorage.body;
-			$(w.document).find("body").css("background-color",v2rv);
-			v2rv=localStorage.salm;
-			$(w.document).find(".salm").css("color",v2rv);
-			v2rv=localStorage.salmNr;
-			$(w.document).find(".salmiNr").css("color",v2rv);
-			v2rv=localStorage.salmPlkr;
-			$(w.document).find(".salmPlkr").css("color",v2rv);
-			v2rv=localStorage.ptkNr;
-			$(w.document).find(".ptkNr").css("color",v2rv);
-			v2rv=localStorage.rNim;
-			$(w.document).find(".rNim").css("color",v2rv);
+		var stiil = JSON.parse(localStorage.stiil);
+
+		var varv = stiil[json].body.v2rv;
+			$(dokument).find("body").css("background-color",varv);
+			varv=stiil[json].salm.v2rv;
+			$(dokument).find(".salm").css("color",varv);
+			varv=stiil[json].salmiNr.v2rv;
+			$(dokument).find(".salmiNr").css("color",varv);
+			varv=stiil[json].salmPlkr.v2rv;
+			$(dokument).find(".salmPlkr").css("color",varv);
+			varv=stiil[json].ptkNr.v2rv;
+			$(dokument).find(".ptkNr").css("color",varv);
+			varv=stiil[json].rNim.v2rv;
+			$(dokument).find(".rNim").css("color",varv);
 		}catch(err) {
-			console.log("tekkis viga: "+err);
+			alert("tekkis viga värvide taastamsiel/valikul: "+err);
 		}
 }
 /*
@@ -701,68 +933,156 @@ function getColor() {
 */
 function setColorJsColor() {
 
-	if(localStorage.body) {
-		$('#taust')[0].color.fromString(localStorage.body);
-	}
+try {
+	var stiil = JSON.parse(localStorage.stiil);
+		$('#ProjektoriAkenTaustaVarv')[0].color.fromString(stiil.ProjektoriAken.body.v2rv);
+		$('#ProjektoriAkenTextiVarv')[0].color.fromString(stiil.ProjektoriAken.salm.v2rv);
+		$('#ProjektoriAkenSalmiNrVarv')[0].color.fromString(stiil.ProjektoriAken.salmiNr.v2rv);
+		$('#ProjektoriAkenSalmiPealkirjaVarv')[0].color.fromString(stiil.ProjektoriAken.salmPlkr.v2rv);
+		$('#ProjektoriAkenPtkNrVarv')[0].color.fromString(stiil.ProjektoriAken.ptkNr.v2rv);
+		$('#ProjektoriAkenRmtNimVarv')[0].color.fromString(stiil.ProjektoriAken.rNim.v2rv);
 
-	if(localStorage.salm) {
-		$('#textiVarv')[0].color.fromString(localStorage.salm);
-	}
-
-	if(localStorage.salmNr) {
-		$('#salminrvarv')[0].color.fromString(localStorage.salmNr);
-	}
-
-	if(localStorage.salmPlkr) {
-		$('#salmipealkirjavarv')[0].color.fromString(localStorage.salmPlkr);
-	}
-
-	if(localStorage.ptkNr) {
-		$('#ptknrvarv')[0].color.fromString(localStorage.ptkNr);
-	}
-
-	if(localStorage.rNim) {
-		$('#rmtnimvarv')[0].color.fromString(localStorage.rNim);
-	}
+		$('#ArvutiAkenTaustaVarv')[0].color.fromString(stiil.ArvutiAken.body.v2rv);
+		$('#ArvutiAkenTextiVarv')[0].color.fromString(stiil.ArvutiAken.salm.v2rv);
+		$('#ArvutiAkenSalmiNrVarv')[0].color.fromString(stiil.ArvutiAken.salmiNr.v2rv);
+		$('#ArvutiAkenSalmiPealkirjaVarv')[0].color.fromString(stiil.ArvutiAken.salmPlkr.v2rv);
+		$('#ArvutiAkenPtkNrVarv')[0].color.fromString(stiil.ArvutiAken.ptkNr.v2rv);
+		$('#ArvutiAkenRmtNimVarv')[0].color.fromString(stiil.ArvutiAken.rNim.v2rv);
+	
+} catch(err) {
+	alert("tekkis viga "+err);
+}
+	
 }
 
 function setDefColors() {
 
-	try {
-		if(!localStorage.body) {
-			localStorage.body="#ffffff";	
+	var json = {
+		"ProjektoriAken": {
+			"body": {
+				"v2rv":"#000000"
+			},
+			"salm": {
+				"v2rv":"#FFF"
+			},
+			"salmiNr": {
+				"v2rv":"#FFF"
+			},
+			"salmPlkr":{
+				"v2rv":"#FFF"
+			},
+			"ptkNr":{
+				"v2rv":"#FFF"
+			},
+			"rNim":{
+				"v2rv":"#FFF"
+			}
+		},
+		"ArvutiAken": {
+			"body": {
+				"v2rv":"#000000"
+			},
+			"salm": {
+				"v2rv":"#FFF"
+			},
+			"salmiNr": {
+				"v2rv":"#FFF"
+			},
+			"salmPlkr":{
+				"v2rv":"#FFF"
+			},
+			"ptkNr":{
+				"v2rv":"#FFF"
+			},
+			"rNim":{
+				"v2rv":"#FFF"
+			}
 		}
-		
-		if(!localStorage.salm) {
-			localStorage.salm="#000000";
-		}
-		
-		if(!localStorage.salmNr) {
-			localStorage.salmNr="#000000";
-		}
+	};
 
-		if(!localStorage.salmPlkr) {
-			localStorage.salmPlkr="#000000";
-		}	
-				
-		if(!localStorage.ptkNr) {
-			localStorage.ptkNr="#000000";	
-		}		
-		
-		if(!localStorage.rNim) {
-			localStorage.rNim="#000000";
-		}	
+	try {
+		if(!localStorage.stiil) {
+			localStorage.stiil = JSON.stringify(json);
+		}
 	}catch(err) {
-		console.log("Tekkis viga Default värvide salvestamisel "+ err);
+		alert("Tekkis viga Default värvide salvestamisel "+ err);
 	}
 		
 }
-			
-		
-		
+/*
+	Teeb vana localstorage väärtused kujule JSON.
+*/
+function ConvertStorage() {
+
+	var json = {
+		"ProjektoriAken": {
+			"body": {
+				"v2rv":""
+			},
+			"salm": {
+				"v2rv":""
+			},
+			"salmiNr": {
+				"v2rv":""
+			},
+			"salmPlkr":{
+				"v2rv":""
+			},
+			"ptkNr":{
+				"v2rv":""
+			},
+			"rNim":{
+				"v2rv":""
+			}
+		},
+		"ArvutiAken": {
+			"body": {
+				"v2rv":"#000000"
+			},
+			"salm": {
+				"v2rv":"#FFF"
+			},
+			"salmiNr": {
+				"v2rv":"#FFF"
+			},
+			"salmPlkr":{
+				"v2rv":"#FFF"
+			},
+			"ptkNr":{
+				"v2rv":"#FFF"
+			},
+			"rNim":{
+				"v2rv":"#FFF"
+			}
+		}
+	};
+
+	try {
+		var v2rv = localStorage.body;
+		json.ProjektoriAken.body.v2rv = v2rv;
+		v2rv=localStorage.salm;
+		json.ProjektoriAken.salm.v2rv = v2rv;
+		v2rv=localStorage.salmNr;
+		json.ProjektoriAken.salmiNr.v2rv = v2rv;
+		v2rv=localStorage.salmPlkr;
+		json.ProjektoriAken.salmPlkr.v2rv = v2rv;
+		v2rv=localStorage.ptkNr;
+		json.ProjektoriAken.ptkNr.v2rv = v2rv;
+		v2rv=localStorage.rNim;
+		json.ProjektoriAken.rNim.v2rv = v2rv;
+		localStorage.stiil = JSON.stringify(json);
+		localStorage.removeItem("body");
+		localStorage.removeItem("salm");
+		localStorage.removeItem("salmNr");
+		localStorage.removeItem("salmPlkr");
+		localStorage.removeItem("ptkNr");
+		localStorage.removeItem("rNim");
+	}catch(err) {
+		alert("Tekkis viga "+err);
+	}
+}
 		</script>
-	</div>
-</div>
+
 
 </body>
 </html>
