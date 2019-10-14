@@ -20,16 +20,22 @@
 
 var sisend = null;
 var w = null;
-var scrollBufferPx = 6;
 var ProjektoriAkenUnSavedSettingBox = false; //muutuja millega kontrollitakse kas seadeid on muudetud.
 var ArvutiAkenUnSavedSettingBox = false;
 var raamatud = ["EST_97","EST_68"];
 var typingTimer;
 var doneTypingItnerval=500;
+var bc = null
+var uuid = null;
+
+const sleep = (milliseconds) => {
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
 
 
-window.setInterval(function() {if(w!=null)if(w.closed)btToAken()},2000);
-	
+
+//window.setInterval(function() {if(w!=null)if(w.closed)btToAken()},2000);
+
 $(document).ready(events);
 
 
@@ -37,12 +43,16 @@ $(document).ready(events);
 
 function events() {
 
-	
-//Kontrollitakse kas piibel on arhiivis olemas. 
+
+  uuid = "piibel-"+Math.round((new Date()).getTime() / 1000).toString().slice(-6);
+	bc = new BroadcastChannel('piibel');
+
+
+//Kontrollitakse kas piibel on arhiivis olemas.
 
 	if(!localStorage.piibel) {
 		$.get('piibel.xml', null, function (data, textStatus, jqXHR) { //laetakse xml fail
-				
+
 			var string = jqXHR.responseText; //võtakse xml sisu tekstina "string"
 			localStorage.piibel = LZString.compressToUTF16(string); //piibel pakitakse ja pannakse kohalikku
 			sisend = $.parseXML(string); // tehakse XML dokument, objekt
@@ -74,6 +84,46 @@ function events() {
 	window.onpopstate = locationHashChanged;
 
 
+
+	bc.onmessage = function (ev) {
+		var object = JSON.parse(ev.data);
+
+		console.log(object)
+
+		switch(object.cmd) {
+				case "window-exist":
+				    w = "Random"
+				    $("button[value='Aken']").text("uuenda");
+						break;
+				case "window-closed":
+				    btToAken();
+						break;
+				case "window-opened":
+				    w = "Random"
+				    $("button[value='Aken']").text("uuenda");
+					  break;
+        case "get-style":
+             if(object.u_id==uuid) {
+               getColor('ProjektoriAken');
+             }
+             break;
+        case "button":
+            if(object.value=="pgUp-show") $("button[value='pgUp']").show();
+            if(object.value=="pgUp-hide") $("button[value='pgUp']").hide();
+            if(object.value=="pgDown-show") $("button[value='pgDown']").show();
+            if(object.value=="pgDown-hide") $("button[value='pgDown']").hide();
+            break;
+        default:
+				    break;
+		}
+	 }
+
+	bc.postMessage(JSON.stringify({cmd:"window"}))
+
+
+
+
+
 	$("#copy-kast").click(function(){
 		$.fancybox({
 			href:"#cop-kast",
@@ -90,22 +140,22 @@ function events() {
 					range.moveToElementText(text);
 					range.select();
 				} else if (window.getSelection) { // moz, opera, webkit
-				    var selection = window.getSelection();            
+				    var selection = window.getSelection();
 				    var range = doc.createRange();
 				    range.selectNodeContents(text);
 				    selection.removeAllRanges();
 				    selection.addRange(range);
 				}
-			}				
+			}
 		})
 	});
-		
+
 	$("#kast").fancybox({
 		onStart:function() {
 			setColorJsColor();
 			if(!w) {
 				$("#ProjektoriAken").hide();
-				$("#tab-2 p").show();	
+				$("#tab-2 p").show();
 			} else {
 				$("#tab-2 p").hide();
 				$("#ProjektoriAken").show();
@@ -128,13 +178,13 @@ function events() {
 							}
 						}
 						return true;
-					} else {	
+					} else {
 						return false;
 					}
 			}
 		},
-		onClosed:function() {	
-					
+		onClosed:function() {
+
 		},
 	});
 
@@ -147,7 +197,7 @@ function events() {
 
 		//AutoComplete valikud
 
-	$("#otsi").autocomplete({ source: [{label:"1Ms-Esimene Moosese raamat", value:"1Ms"},{label:"2Ms-Teine Moosese raamat", value:"2Ms"},{label:"3Ms-Kolmas Moosese raamat", value:"3Ms"},{label:"4Ms-Neljas Moosese raamat", value:"4Ms"},{label:"5Ms-Viies Moosese raamat", value:"5Ms"},{label:"Jos-Joosua", value:"Jos"},{label:"Km-Kohtumõistjate raamat", value:"Km"},{label:"Rt-Rutt", value:"Rt"},{label:"1Sm-Esimene Saamueli raamat", value:"1Sm"},{label:"2Sm-Teine Saamueli raamat", value:"2Sm"},{label:"1Kn-Esimene Kuningate raamat", value:"1Kn"},{label:"2Kn-Teine Kuningate raamat", value:"2Kn"},{label:"1Aj-Esimene ajaraamat", value:"1Aj"},{label:"2Aj-Teine Ajaraamat", value:"2Aj"},{label:"Esr-Esra", value:"Esr"},{label:"Ne-Nehemja", value:"Ne"},{label:"Est-Ester", value:"Est"},{label:"Ii-Iiob", value:"Ii"},{label:"Ps-Psalmid (Laulud)", value:"Ps"},{label:"Õp-Õpetussõnad", value:"õp"},{label:"Kg-Koguja", value:"Kg"},{label:"Ül-ülemlaul", value:"Ül"},{label:"Js-Jesaja", value:"Js"},{label:"Jr-Jeremija", value:"Jr"},{label:"Nl-Nutulaulud", value:"Nl"},{label:"Hs-Hesekiel", value:"Hs"},{label:"Tn-Taaniel", value:"Tn"},{label:"Ho-Hoosea", value:"Ho"},{label:"Jl-Joel", value:"Jl"},{label:"Am-Aamos", value:"Am"},{label:"Ob-Obadja", value:"Ob"},{label:"Jn-Joona", value:"Jn"},{label:"Mi-Miika", value:"Mi"},{label:"Na-Nahum", value:"Na"},{label:"Ha-Habakuk", value:"Ha"},{label:"Sf-Sefanja", value:"Sf"},{label:"Hg-Haggai", value:"Hg"},{label:"Sk-Sakarja", value:"Sk"},{label:"Ml-Malaki", value:"Ml"},{label:"Mt-Matteuse evangeelium", value:"Mt"},{label:"Mk-Markuse evangeelium", value:"Mk"},{label:"Lk-Luuka evangeelium", value:"Lk"},{label:"Jh-Johannese evangeelium", value:"Jh"},{label:"Ap-Apostlite teod", value:"Ap"},{label:"Rm-Pauluse kiri roomlastele", value:"Rm"},{label:"1Kr-Pauluse esimene kiri korintlastele", value:"1Kr"},{label:"2Kr-Pauluse teine kiri korintlastele", value:"2Kr"},{label:"Gl-Pauluse kiri galaatlastele", value:"Gl"},{label:"Ef-Pauluse kiri efeslastele", value:"Ef"},{label:"Fl-Pauluse kiri filiplastele", value:"Fl"},{label:"Kl-Pauluse kiri koloslastele", value:"Kl"},{label:"1Ts-Pauluse esimene kiri tessalooniklastele", value:"1Ts"},{label:"2Ts-Pauluse teine kiri tessalooniklastele", value:"2Ts"},{label:"1Tm-Pauluse esimene kiri Timoteosele", value:"1Tm"},{label:"2Tm-Pauluse teine kiri Timoteosele", value:"2Tm"},{label:"Tt-Pauluse kiri Tiitusele", value:"Tt"},{label:"Fm-Pauluse kiri Fileemonile", value:"Fm"},{label:"Hb-Kiri heebrealastele", value:"Hb"},{label:"Jk-Jaakobuse kiri", value:"Jk"},{label:"1Pt-Peetruse esimene kiri", value:"1Pt"},{label:"2Pt-Peetruse teine kiri", value:"2Pt"},{label:"1Jh-Johannese esimene kiri", value:"1Jh"},{label:"2Jh-Johannese teine kiri", value:"2Jh"},{label:"3Jh-Johannese kolmas kiri", value:"3Jh"},{label:"Jd-Juuda kiri", value:"Jd"},{label:"Ilm-Johannese ilmutus", value:"Ilm"}],
+	$("#otsi").autocomplete({ source: [{label:"1Ms-Esimene Moosese raamat", value:"1Ms"},{label:"2Ms-Teine Moosese raamat", value:"2Ms"},{label:"3Ms-Kolmas Moosese raamat", value:"3Ms"},{label:"4Ms-Neljas Moosese raamat", value:"4Ms"},{label:"5Ms-Viies Moosese raamat", value:"5Ms"},{label:"Jos-Joosua", value:"Jos"},{label:"Km-Kohtumõistjate raamat", value:"Km"},{label:"Rt-Rutt", value:"Rt"},{label:"1Sm-Esimene Saamueli raamat", value:"1Sm"},{label:"2Sm-Teine Saamueli raamat", value:"2Sm"},{label:"1Kn-Esimene Kuningate raamat", value:"1Kn"},{label:"2Kn-Teine Kuningate raamat", value:"2Kn"},{label:"1Aj-Esimene ajaraamat", value:"1Aj"},{label:"2Aj-Teine Ajaraamat", value:"2Aj"},{label:"Esr-Esra", value:"Esr"},{label:"Ne-Nehemja", value:"Ne"},{label:"Est-Ester", value:"Est"},{label:"Ii-Iiob", value:"Ii"},{label:"Ps-Psalmid (Laulud)", value:"Ps"},{label:"Õp-Õpetussõnad", value:"õp"},{label:"Kg-Koguja", value:"Kg"},{label:"Ül-ülemlaul", value:"Ül"},{label:"Js-Jesaja", value:"Js"},{label:"Jr-Jeremija", value:"Jr"},{label:"Nl-Nutulaulud", value:"Nl"},{label:"Hs-Hesekiel", value:"Hs"},{label:"Tn-Taaniel", value:"Tn"},{label:"Ho-Hoosea", value:"Ho"},{label:"Jl-Joel", value:"Jl"},{label:"Am-Aamos", value:"Am"},{label:"Ob-Obadja", value:"Ob"},{label:"Jn-Joona", value:"Jn"},{label:"Mi-Miika", value:"Mi"},{label:"Na-Nahum", value:"Na"},{label:"Ha-Habakuk", value:"Ha"},{label:"Sf-Sefanja", value:"Sf"},{label:"Hg-Haggai", value:"Hg"},{label:"Sk-Sakarja", value:"Sk"},{label:"Ml-Malaki", value:"Ml"},{label:"Mt-Matteuse evangeelium", value:"Mt"},{label:"Mk-Markuse evangeelium", value:"Mk"},{label:"Lk-Luuka evangeelium", value:"Lk"},{label:"Jh-Johannese evangeelium", value:"Jh"},{label:"Ap-Apostlite teod", value:"Ap"},{label:"Rm-Pauluse kiri roomlastele", value:"Rm"},{label:"1Kr-Pauluse esimene kiri korintlastele", value:"1Kr"},{label:"2Kr-Pauluse teine kiri korintlastele", value:"2Kr"},{label:"Gl-Pauluse kiri galaatlastele", value:"Gl"},{label:"Ef-Pauluse kiri efeslastele", value:"Ef"},{label:"Fl-Pauluse kiri filiplastele", value:"Fl"},{label:"Kl-Pauluse kiri koloslastele", value:"Kl"},{label:"1Ts-Pauluse esimene kiri tessalooniklastele", value:"1Ts"},{label:"2Ts-Pauluse teine kiri tessalooniklastele", value:"2Ts"},{label:"1Tm-Pauluse esimene kiri Timoteosele", value:"1Tm"},{label:"2Tm-Pauluse teine kiri Timoteosele", value:"2Tm"},{label:"Tt-Pauluse kiri Tiitusele", value:"Tt"},{label:"Fm-Pauluse kiri Fileemonile", value:"Fm"},{label:"Hb-Kiri heebrealastele", value:"Hb"},{label:"Jk-Jaakobuse kiri", value:"Jk"},{label:"1Pt-Peetruse esimene kiri", value:"1Pt"},{label:"2Pt-Peetruse teine kiri", value:"2Pt"},{label:"1Jh-Johannese esimene kiri", value:"1Jh"},{label:"2Jh-Johannese teine kiri", value:"2Jh"},{label:"3Jh-Johannese kolmas kiri", value:"3Jh"},{label:"Jd-Juuda kiri", value:"Jd"},{label:"Ilm-Johannese ilmutus", value:"Ilm"},{label:"Ju-Juudit", value:"Ju"},{label:"Trk-Saalomoni Tarkuseraamat", value:"Trk"},{label:"Tb-Toobit", value:"Tb"},{label:"Srk-Jeesus Siirak", value:"Srk"},{label:"Brk-Baaruk", value:"Brk"},{label:"1Mak-Esimene Makkabite raamat", value:"1Mak"},{label:"2Mak-Teine Makkabite raamat", value:"2Mak"},{label:"Erl-Estri raamatu lisad", value:"Erl"},{label:"Trl-Taanieli raamatu lisad", value:"Trl"}],
 			select: function( event, ui ) {
 				$("#otsi").val(ui.item.value);
 				v2ljasta();
@@ -155,31 +205,35 @@ function events() {
 			}
 			 });
 
-		
-		
+
+
 	//Kiirklahvid salmide kerimiskeks aknas.
-		
+
 	$(document).keypress(function(event){
-			
+
 		if(w!=null) {
 			if(event.charCode==97) { //A
-				pageDown();
+				//pageDown();
+				bc.postMessage(JSON.stringify({cmd:"scroll", value:"pageDown"}));
 			}
-				
+
 			if(event.charCode==113) { //Q
-				pageUp();
+				bc.postMessage(JSON.stringify({cmd:"scroll", value:"pageUp"}));
+				//pageUp();
 			}
-					
+
 			if(event.charCode==115) { //S
-				scrollUp();
+				bc.postMessage(JSON.stringify({cmd:"scroll", value:"scrollUp"}));
+				//scrollUp();
 			}
-					
+
 			if(event.charCode==120) { //X
-				scrollDown();
-			}	
+				bc.postMessage(JSON.stringify({cmd:"scroll", value:"scrollDown"}));
+				//scrollDown();
+			}
 		}
 	});
-		
+
 
 
 	//Otsingu kastis aktiivsuse tuvaastamine
@@ -205,28 +259,30 @@ function events() {
     	clearTimeout(typingTimer);
     	typingTimer = setTimeout(v2ljasta, doneTypingItnerval);
 	});
-		
-		
-		
-	$("button[value='pgDown']").click(scrollDown);
-	$("button[value='pgUp']").click(scrollUp);
-		
-		
-	
+
+  $("button[value='pgDown']").click(function(){
+      bc.postMessage(JSON.stringify({cmd:"scroll", value:"pageDown"}))
+  });
+  $("button[value='pgUp']").click(function() {
+    bc.postMessage(JSON.stringify({cmd:"scroll", value:"pageUp"}))
+  });
+
 	$("button[value='Aken']").click(function() {
 
 		if(w==null) {
-			w = window.open('','piibel2','fullscreen=yes,scrollbars=no');
-			//$("button[value='pgDown']").show();
-		
+			w = window.open('aken.html','piibel2','fullscreen=yes,scrollbars=no');
 			$(this).text("uuenda");
-			window_content();
 
-		} else {
+			sleep(900).then(() => {
+         updateWindowContent();
+      })
+		}
+
+		if(w) {
 			updateWindowContent();
 		}
 	});
-		
+
 	$("input[type=checkbox]").click(function() {
 
 		var x=$(this).val();
@@ -259,9 +315,9 @@ function locationHashChanged() {
 
    if (x.length>0) {
    		var split = x.split("&");
- 
-   		$("#otsi").val(split[0].replace("%20"," "));
-	   	var y = sessionStorage[x.replace("%20"," ")];
+
+			$("#otsi").val(decodeURI(split[0]))
+			var y = sessionStorage[decodeURI(x)];
 	   	$("#wraper").html(y);
 
 	   	var val = (split[1].substr(7) === "true");
@@ -269,12 +325,12 @@ function locationHashChanged() {
 	   	$('#CB_EST_68').prop('checked', val);
 	   	val = (split[2].substr(7) === "true");
 	   	$('#CB_EST_97').prop('checked', val);
- 		   	
+
 	} else {
 
 		$("#otsi").val("");
 
-		v2ljasta();	
+		v2ljasta();
 	}
 }
 
@@ -291,17 +347,17 @@ function btToAken() {
 
 
 function v2ljasta() {
-		
+
 	$("#wraper").empty();
 	$("#loading").show();
 	$("button[value='uusSalm']").hide();
-		
+
 	var value = new Array();
 
 	$("input:checked").each(function(){
 		value.push($(this).val());
 	});
-		
+
 	var search=$("#otsi").val();
 
 		/*
@@ -309,7 +365,7 @@ function v2ljasta() {
 			search=search.replace(".",":");
 			$("#otsi").val(search);
 		}*/
-	
+
 		//raamatu nimi Nt: 1ms, 2ms
 		if(search.match(/^[1-5]?[a-zöäüõ]{2,3}$/i)!=null) {
 			var rNim=null;
@@ -323,11 +379,11 @@ function v2ljasta() {
 						rNim=$(this).parents("book").attr("title");
 						out+="<div class='rNim'>"+rNim+"</div>";
 					}
-						
+
 							var ptkNr=$(this).attr("id");
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 						$(this).children().each(function() {
-							
+
 							 if($(this).attr("heading")) {
 								out+="<div class='salmPlkr'>"+$(this).attr("heading")+"</div>"
 							 }
@@ -337,16 +393,16 @@ function v2ljasta() {
 						});
 						//navigation(search,vers);
 						//navigation({raamat:search,vers:vers});
-						
+
 				});
 				out+="</div>";
 				rNim=null;
 			}
 				$('#wraper').html(out);
 				//history.pushState(search," ","#"+search);
-			
-				
-		//raamatu peatükk Nt:1ms 2, 1ms 4, 1jh 4	
+
+
+		//raamatu peatükk Nt:1ms 2, 1ms 4, 1jh 4
 		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}$/i)!=null) {
 			var out='';
 			search=search.split(" ");
@@ -357,7 +413,7 @@ function v2ljasta() {
 			for(x in value) {
 				var vers=value[x];
 				out+="<div id="+vers+">";
-				
+
 				$(sisend).find("piibel "+vers+" book:regex(abbrev,^"+raamat+"$)").find("chapter[id="+ptk+"]").each(function () {
 
 					if(rNim==null) {
@@ -379,12 +435,12 @@ function v2ljasta() {
 				out+="</div>";
 				rNim=null;
 			}
-				
+
 			$("#wraper").html(out);
-			
+
 		//üksiku salm NT: 1ms 1:2
 		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}$/i)!=null) {
-			
+
 			$("button[value='uusSalm']").show();
 			search=search.split(" ");
 			var ptk_salm=search[1].split(":");
@@ -401,7 +457,7 @@ function v2ljasta() {
 				$(sisend).find("piibel "+vers+" book:regex(abbrev,^"+raamat+"$)").find("chapter[id="+ptk+"]").find("verse[id="+salm+"]").each(function () {
 					if(rNim==null) {
 						rNim=$(this).parents("book").attr("title");
-						out+="<div class='rNim'>"+rNim+"</div>";	
+						out+="<div class='rNim'>"+rNim+"</div>";
 					}
 						var ptkNr=$(this).parent().attr("id");
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
@@ -410,23 +466,24 @@ function v2ljasta() {
 							 }
 						var salmNr=$(this).attr("id");
 							out+="<div class='salm'><span class='salmiNr'>"+salmNr+". </span>"+$(this).text()+"</div>";
-					
+
 					//navigation(raamat,vers);
 				});
 				out+="</div>";
 				rNim=null;
-			}	
-					
+			}
+
 					$("#wraper").html(out);
-			
+
 		//mitu salmi mis on komaga eraldatud. Nt: 1ms 3:2,1,5,10
-		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}(,[0-9]{1,3})+$/i)!=null) {
+		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3}\s+[0-9]{1,3}:\s*[0-9]{1,3}(,\s*[0-9]{1,3})+$/i)!=null) {
 			var out='';
-			search=search.split(" ");
-			var ptk_salm=search[1].split(":");
-			var raamat=search[0];
+			exploded_search=search.split(" ");
+			var ptk_salm=exploded_search[1].split(":");
+			var raamat=exploded_search[0];
 			var ptk=ptk_salm[0];
-			var salm=ptk_salm[1].split(",").sort(function(a,b){return a-b});
+			ptk_salm[1] = search.split(":")[1];
+			var salm=ptk_salm[1].split(",");
 			var rNim=null;
 
 			for(x in value) {
@@ -442,7 +499,7 @@ function v2ljasta() {
 						var ptkNr=ptk;
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
 				for(var i=0; i<salm.length;i++) {
-					$(sisu).find("verse[id="+parseInt(salm[i])+"]").each(function() {
+					$(sisu).find("verse[id="+parseInt(salm[i].trim())+"]").each(function() {
 						if($(this).attr("heading")) {
 								out+="<div class='salmPlkr'>"+$(this).attr("heading")+"</div>"
 							 }
@@ -455,16 +512,18 @@ function v2ljasta() {
 			}
 					$("#wraper").html(out);
 				//navigation(raamat,vers);
-		//salmid x kuni y Nt: 1ms 3:2-10		
-		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}-[0-9]{1,3}$/i)!=null) {
+		//salmid x kuni y Nt: 1ms 3:2-10
+		} else if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,3}(-|–)[0-9]{1,3}$/i)!=null) {
 
 			$("button[value='uusSalm']").show();
-			var out='';
+			//var delimeter = (search.match(/–/g)) ? "–" : "-"
+			var delimeter = (search.indexOf("–") !==-1) ? "–" : "-"
+      var out='';
 			search=search.split(" ");
 			var ptk_salm=search[1].split(":");
 			var raamat=search[0];
 			var ptk=ptk_salm[0];
-			var salm=ptk_salm[1].split("-");
+			var salm=ptk_salm[1].split(delimeter);
 
 			for(x in value) {
 				var vers=value[x];
@@ -473,13 +532,13 @@ function v2ljasta() {
 				var sisu=$(sisend).find("piibel "+vers+" book:regex(abbrev,^"+raamat+"$)").find("chapter[id="+ptk+"]");
 				var rNim=$(sisu).parents("book").attr("title");
 					out+="<div class='rNim'>"+rNim+"</div>";
-				
+
 				var ptkNr=ptk;
 						out+="<div class='ptkNr'>"+ptkNr+"</div>";
-				
+
 				for(var i=parseInt(salm[0]); i<=parseInt(salm[1]);i++) {
-					
-					
+
+
 					$(sisu).find("verse[id="+i+"]").each(function() {
 					if($(this).attr("heading")) {
 								out+="<div class='salmPlkr'>"+$(this).attr("heading")+"</div>"
@@ -491,9 +550,9 @@ function v2ljasta() {
 				 out+="</div>";
 			}
 					$("#wraper").html(out);
-			//suvalise teksti otsimine	
+			//suvalise teksti otsimine
 		} else if(search.match(/^t:.+$/i)!=null) {
-	
+
 					var out= '';
 					var rNim = null;
 					var ptkNr;
@@ -508,10 +567,10 @@ function v2ljasta() {
 						out+="<div id="+vers+">";
 						var sisu   = $(sisend).find("piibel "+vers).find("verse:contains('"+search+"')").each(function(){
 
-							rNim   = $(this).parents("book").attr("abbrev");	
+							rNim   = $(this).parents("book").attr("abbrev");
 							ptkNr  = $(this).parents("chapter").attr("id");
 							salmNr = $(this).attr("id");
-							out+="<div class='salm'><a href='#"+rNim+" "+ptkNr+":"+salmNr+"' class='salmiAsukoht'>"+rNim+" "+ptkNr+":"+salmNr+"</a> "+$(this).text()+"</div>";	 
+							out+="<div class='salm'><a href='#"+rNim+" "+ptkNr+":"+salmNr+"' class='salmiAsukoht'>"+rNim+" "+ptkNr+":"+salmNr+"</a> "+$(this).text()+"</div>";
 							count++;
 							count_r.push(count);
 						});
@@ -525,11 +584,12 @@ function v2ljasta() {
 			}
 
 			var songName = "VL-"+search+".ppt";
-			
-			var out = "<a href='laulud/"+songName+"'>"+songName+"</a>";
+			var backName = "YL-"+search+".mp3";
+
+			var out = "<a href='laulud/"+songName+"'>"+songName+"</a>&nbsp;<a href='taustad/"+backName+"'>"+backName+"</a>";
 			$("#wraper").html(out);
 		}
-		
+
 		if(w!=null) {
 			if(w.closed) {
 				$("button").text("Aken");
@@ -542,189 +602,37 @@ function v2ljasta() {
 
 		var x = window.location.hash.substring(1);
 		var y = $("#otsi").val();
-		var w = $(".salm").length;
-		if(w>0) {
+		var numberOfVerse = $(".salm").length;
+		if(numberOfVerse>0) {
 			$("#copy-kast").css('display', 'inline-block');
 		} else {
 			$("#copy-kast").css('display', 'none');
 		}
-		
-		if(x!=y && w>0) {
+
+		if(x!=y && numberOfVerse>0) {
 			y += "&EST_68="+$('#CB_EST_68').is(':checked')+"&EST_97="+$('#CB_EST_97').is(':checked');
 			sessionStorage[y] = $("#wraper").html();
 			location.hash = y;
-			console.log("test");
 
 		}
 }
 
-/**
-* Teise akna avamine ja sisu loomine.
-*/
-function window_content() {
-	
-	if(!w.closed) {
-			var sisu = $("#wraper").clone().html();
-			var html="<!Doctype html><html><head><link rel='stylesheet' type='text/css' href='css/stiil.css'><link rel='stylesheet' type='text/css' href='css/stiilAken.css'><link rel='stylesheet' type='text/css' href='css/CustomStiil.css'></head><body onunload='window.opener.btToAken()'><div id='wraper'>"+sisu+"</div></body></html>";
-			
-			//$(w.document).find("#wraper").html(sisu);
-			//var script1   = document.createElement("script");
-			//script1.type  = "text/javascript";
-			//script1.src   = "js/windowEvents.js";
-			var script1 = "<script  type='text/javascript' src='js/windowEvents.js'>";
-
-			
-			
-			/*var script2   = document.createElement("script");
-			script2.type  = "text/javascript";
-			script2.src   = "http://code.jquery.com/jquery-latest.min.js";*/
-			
-			w.document.open();
-			w.document.write(html);
-			w.document.close();
-			//$(w.document).find("html").find("head").append(script2);
-			$(w.document).find("head").append(script1);
-			//w.document.body.appendChild(script2);
-			//w.document.body.appendChild(script1);
-		} else {
-			$("button [value='Aken']").text("Aken");
-			w=null;
-		}
-}
-
-function updateWindowContent(){
+function updateWindowContent() {
 	try{
 		var sisu = $("#wraper").clone().html();
-		$(w.document).find("body").find("#wraper").html(sisu);
+		var obj = {cmd: "data", data: sisu, u_id:uuid};
+		bc.postMessage(JSON.stringify(obj));
 		getColor('ProjektoriAken');
 	}catch(e){
 		alert(e);
 	}
 }
 
-
-/**
-*
-*	Lehe alla kerimine PageDown
-*/
-function pageDown()  {
-
-	var scrollPosition = $(w.document).scrollTop(), //akna ülemine äär tipust
-	    nextPost = 0,
-	    currentPosition = 0;
-		var height=scrollPosition+$(w).height();  // akna alumine äär tipust
-
-	$(w.document).find(".salm").each(function() {
-	    currentPosition = $(this).offset().top; //salmi ülemise ääre kaugus tipust
-		
-	    if (currentPosition > height && currentPosition > scrollPosition) {
-			currentPosition = $(this).prev().offset().top-scrollBufferPx;
-	        nextPost = currentPosition;
-	        return false; // break the loop
-	    } 
-   
-	});
-
-	//$(w.document).scrollTop(nextPost); // Scrolls the page to the post
-	$(w.document).find("html").animate({scrollTop:nextPost}, 2000); 
-
-}
-/**
-*
-*	Lehe üless kerimine PageUp
-*/
-function pageUp()  {
-	
-	var scrollPosition = $(w.document).scrollTop(),
-		nextPost = 0,
-		currentPosition = 0;
-		var height=scrollPosition-$(w).height();
-	$(w.document).find(".salm").each(function() {
-		currentPosition = $(this).offset().top;
-		
-		if (currentPosition > height) {
-			currentPosition = $(this).offset().top-scrollBufferPx;
-			nextPost = currentPosition;
-			return false; // break the loop
-		} 
-		
-	
-});
-//$(w.document).scrollTop(nextPost); // Scrolls the page to the post
-$(w.document).find("html").animate({scrollTop:nextPost}, 2000); 
-
-}
-
-
-function scrollUp()  {
-	
-	var scrollPosition = $(w.document).scrollTop(),
-		nextPost = 0,
-		currentPosition = 0,
-		salm,
-		i=0;
-		
-		
-	var test=$(w.document).find(".salm").each(function() {
-		currentPosition = $(this).offset().top;
-		if (currentPosition > scrollPosition) {
-		
-				salm = $(this).prev();
-				if($(salm).attr('class')!="salm") { 
-					do{
-						salm = $(salm).prev();
-						if(typeof salm ==="undefined") return false; //väljub functionist. break loob each
-						
-						i++;
-					}
-					while($(salm).attr('class')!="salm" && i<4)
-				} 
-			
-				if(salm.length!=0) { //salm element ei sisalda midagi. Tühjus. tuleb prev()
-					nextPost=$(salm).offset().top-scrollBufferPx;
-				} else {
-					nextPost=currentPosition-200; //200 on suvaline arv, et piisavalt ülesse kerida, et minna edasi normaalselt
-				}	
-				
-			return false; // break the loop
-		} 
-	
-	});
-	//$(w.document).scrollTop(nextPost); // Scrolls the page to the post
-	$(w.document).find("html").animate({scrollTop:nextPost}, 500);
-}
-
-function scrollDown()  {
-	
-	var scrollPosition = $(w.document).scrollTop(),
-		nextPost = 0,
-		currentPosition = 0;
-	var position2=scrollPosition+$(w).height();
-	
-	$(w.document).find(".salm").each(function() {
-		currentPosition = $(this).offset().top+$(this).height();
-	
-		if (currentPosition > position2) {
-			nextPost = scrollPosition+(currentPosition-position2)+scrollBufferPx;
-			return false; // break the loop
-		} 
-		
-				/*
-				currentPosition += $(this).height();
-				nextPost=scrollPosition+(currentPosition-position2)+10;
-				$("button[value='pgDown']").hide();
-				return false; */		
-	});
-	//$(w.document).scrollTop(nextPost); // Scrolls the page to the post
-	$(w.document).find("html").animate({scrollTop:nextPost}, 500); 
-		
-		
-}
-
 function lisaSalm() {
 	var search=$("#otsi").val();
-	if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,2}-[0-9]{1,2}$/i)!=null) {
-		var a=search.split("-");
+	if(search.match(/^[1-5]?[a-zöäüõ]{2,3} [0-9]{1,3}:[0-9]{1,2}(-|–)[0-9]{1,2}$/i)!=null) {
+    var delimeter = (search.indexOf("–") !==-1) ? "–" : "-"
+    var a=search.split(delimeter);
 		var number=parseInt(a[1])+1;
 		number=String(number);
 		search=search.replace(/\d+$/,number);
@@ -744,7 +652,7 @@ function lisaSalm() {
 }
 
 function navigation(obj) {
-	
+
 	var html='<a href="#">Peatükid</a><ul>';
 	var raamat = $(sisend).find("piibel "+obj.vers+" book:regex(abbrev,^"+obj.raamat+"$)");
 	var ptkArv = $(raamat).children().last().attr("id");
@@ -756,7 +664,7 @@ function navigation(obj) {
 					for(var j=1;j<=salmArv;j++) {
 						html+='<li><a href="#">'+j+'</a></li>';
 					}
-				html+="</ul>"; 
+				html+="</ul>";
 		html+="</li>"; //peatüki lõpp
 	}
 
@@ -790,13 +698,13 @@ function InitTooltips() {
 				<td><label for="EST_68">EST 68:</label><input type="checkbox" name="piibel" id="CB_EST_68" value="EST_68"/></td>
 			</tr>
 		</table>
-			<a id="copy-kast" class="ui-icon ui-icon-clipboard">Copy</a>	
+			<a id="copy-kast" class="ui-icon ui-icon-clipboard">Copy</a>
 			<a id="kast" href="#settings">Settings</a>
 			<!--
 				<ul id="menu">
 					<li id="nav-ptk"><a href="#">Peatükid</a></li>
 				</ul>
-			-->	
+			-->
 	</div>
 </div>
 <div id="wraper">
@@ -804,7 +712,7 @@ function InitTooltips() {
 </div>
 <div style="display:none">
 	<div id="cop-kast"></div>
-</div>	
+</div>
 <div style="display:none">
 	<div id="settings">
 			<ul>
@@ -877,17 +785,11 @@ function InitTooltips() {
 				<p>Peate avama akna, et muuta seadistusi.</p>
 		</div>
 	</div>
-</div>			
+</div>
 		<script>
-		
-		
 		function chClProjektoriAken(color) {
 
-			try {
-				$(w.document).find(color.elm).css(color.attr,color.value);
-			} catch(err) {
-				console.log(err);
-			}
+      bc.postMessage(JSON.stringify({cmd:"style",element:{color}}));
 		}
 
 		function chClArvutiAken(color) {
@@ -899,7 +801,7 @@ function InitTooltips() {
 			Värv võetakse settingboxi aknast mitte projektori aknast.
 		 */
 		$("#ArvutiAkenKinnita").click(function(){
-		
+
 			try {
 				var stiil = JSON.parse(localStorage.stiil);
 				var varv = '#'+$('#ArvutiAkenTaustaVarv')[0].color.toString();
@@ -924,11 +826,11 @@ function InitTooltips() {
 		 } catch(e) {
 		 	alert("Katki "+e);
 		 }
-			
+
 		});
 
 		$("#ProjektoriAkenKinnita").click(function(){
-		
+
 			try {
 				var stiil = JSON.parse(localStorage.stiil);
 				var varv = '#'+$('#ProjektoriAkenTaustaVarv')[0].color.toString();
@@ -952,21 +854,26 @@ function InitTooltips() {
 		 } catch(e) {
 		 	alert("Projekri värvide salvestamine katki "+e);
 		 }
-			
+
 		});
 
 		$("#katkesta").click(function(){
 			$.fancybox.close();
 		});
 
-		
+
 
 function getColor(aken) {
 
-	var dokument = aken == "ProjektoriAken" ? w.document : document;
-	var json = aken == "ProjektoriAken" ? "ProjektoriAken" : "ArvutiAken";
+	var dokument = (aken == "ProjektoriAken") ? w.document : document;
+	var json = (aken == "ProjektoriAken") ? "ProjektoriAken" : "ArvutiAken";
 	try {
 		var stiil = JSON.parse(localStorage.stiil);
+
+    if(aken == "ProjektoriAken") {
+      bc.postMessage(JSON.stringify({cmd:"style",data:stiil[json]}))
+      return
+    }
 
 		var varv = stiil[json].body.v2rv;
 			$(dokument).find("body").css("background-color",varv);
@@ -1004,11 +911,11 @@ try {
 		$('#ArvutiAkenSalmiPealkirjaVarv')[0].color.fromString(stiil.ArvutiAken.salmPlkr.v2rv);
 		$('#ArvutiAkenPtkNrVarv')[0].color.fromString(stiil.ArvutiAken.ptkNr.v2rv);
 		$('#ArvutiAkenRmtNimVarv')[0].color.fromString(stiil.ArvutiAken.rNim.v2rv);
-	
+
 } catch(err) {
 	alert("tekkis viga "+err);
 }
-	
+
 }
 
 function setDefColors() {
@@ -1063,7 +970,7 @@ function setDefColors() {
 	}catch(err) {
 		alert("Tekkis viga Default värvide salvestamisel "+ err);
 	}
-		
+
 }
 /*
 	Teeb vana localstorage väärtused kujule JSON.
